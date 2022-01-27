@@ -1,4 +1,4 @@
-function [out] = baseflow_3(S,Smax)
+function [out] = baseflow_3(S,Smax, delta_t)
 %baseflow_3 
 
 % Copyright (C) 2019, 2021 Wouter J.M. Knoben, Luca Trotter
@@ -14,7 +14,7 @@ function [out] = baseflow_3(S,Smax)
 % @(Inputs):    S    - current storage [mm]
 %               Smax - maximum contributing storage [mm]
 
-out = Smax^(-4)/4*(S^5);
+out = Smax^(-4)/(4*delta_t)*(S^5);
 
 end
 

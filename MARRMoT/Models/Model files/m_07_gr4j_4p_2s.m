@@ -108,12 +108,12 @@ classdef m_07_gr4j_4p_2s < MARRMoT_model
             flux_ef   = P - flux_pn;
             flux_ps   = saturation_4(S1,x1,flux_pn);
             flux_es   = evap_11(S1,x1,flux_en);
-            flux_perc = percolation_3(S1,x1);
+            flux_perc = percolation_3(S1,x1,delta_t);
             flux_q9   = route(.9.*(flux_pn - flux_ps + flux_perc), uh_q9);
             flux_q1   = route(.1.*(flux_pn - flux_ps + flux_perc), uh_q1);
             flux_fr   = recharge_2(3.5,S2,x3,x2);
             flux_fq   = flux_fr;
-            flux_qr   = baseflow_3(S2,x3);
+            flux_qr   = baseflow_3(S2,x3,delta_t);
             flux_qt   = flux_qr + max(flux_q1 + flux_fq,0);
             % this flux is not included in original MARRMoT,
             % but it is useful to calculate the water balance
