@@ -1,4 +1,4 @@
-function [out] = percolation_3(S,Smax,delta_t)
+function [out] = percolation_3(S,Smax)
 %percolation_3 
 
 % Copyright (C) 2019, 2021 Wouter J.M. Knoben, Luca Trotter
@@ -14,7 +14,7 @@ function [out] = percolation_3(S,Smax,delta_t)
 % @(Inputs):    S    - current storage [mm]
 %               Smax - maximum contributing storage [mm]
 
-out = Smax^(-4)./(4*delta_t)*(4/9)^(4)*S^5;
+out = Smax^(-4)./(4)*(4/9)^(4)*S^5;
 
 end
 
