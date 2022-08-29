@@ -9,11 +9,11 @@ classdef m_201_mygsfb_8p_3s < MARRMoT_model
 
 % Model reference
 % Nathan, R. J., & McMahon, T. A. (1990). SFB model part l . Validation of 
-% fixed model parameters. In Civil Eng. Trans. (pp. 157–161).
+% fixed model parameters. In Civil Eng. Trans. (pp. 157â€“161).
 % 
 % Ye, W., Bates, B. C., Viney, N. R., & Sivapalan, M. (1997). Performance 
 % of conceptual rainfall-runoff models in low-yielding ephemeral catchments.
-% Water Resources Research, 33(1), 153–166. http://doi.org/doi:10.1029/96WR02840
+% Water Resources Research, 33(1), 153â€“166. http://doi.org/doi:10.1029/96WR02840
 
     properties
         % model-specific attributes
@@ -85,7 +85,7 @@ classdef m_201_mygsfb_8p_3s < MARRMoT_model
             flux_ea  = min(Ep, emax*S1/(smax*ndc) + Ep * (1- smoothThreshold_storage_logistic(S1,smax*ndc)));
             flux_qs  = saturation_1(P,S1,smax);
             flux_f   = min(frate,S1/delta_t).*smoothThreshold_storage_logistic(S1,smax*ndc);
-            flux_qb  = b*dpf*S2.* (1 - smoothThreshold_storage_logistic(S2, sdrmax));
+            flux_qb  = baseflow_9(b*dpf,sdrmax,S2);
             flux_dp  = baseflow_1((1-b)*dpf,S2);
             flux_qdr = recharge_5(c,ndc*smax,S3,S1);
 
