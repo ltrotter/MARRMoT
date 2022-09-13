@@ -1,4 +1,4 @@
-classdef m_202_mygsfb_4p_3s < MARRMoT_model
+classdef m_202_mygsfb_8p_3s < MARRMoT_model
 % Class for hydrologic conceptual model: GSFB (edits by LT)
 
 % Copyright (C) 2019, 2021 Wouter J.M. Knoben, Luca Trotter
@@ -9,11 +9,11 @@ classdef m_202_mygsfb_4p_3s < MARRMoT_model
 
 % Model reference
 % Nathan, R. J., & McMahon, T. A. (1990). SFB model part l . Validation of 
-% fixed model parameters. In Civil Eng. Trans. (pp. 157–161).
+% fixed model parameters. In Civil Eng. Trans. (pp. 157â€“161).
 % 
 % Ye, W., Bates, B. C., Viney, N. R., & Sivapalan, M. (1997). Performance 
 % of conceptual rainfall-runoff models in low-yielding ephemeral catchments.
-% Water Resources Research, 33(1), 153–166. http://doi.org/doi:10.1029/96WR02840
+% Water Resources Research, 33(1), 153â€“166. http://doi.org/doi:10.1029/96WR02840
 
     properties
         % model-specific attributes
@@ -22,23 +22,23 @@ classdef m_202_mygsfb_4p_3s < MARRMoT_model
         
         % creator method
 
-        function obj = m_202_mygsfb_4p_3s()
+        function obj = m_202_mygsfb_8p_3s()
             obj.numStores = 3;                                             % number of model stores
             obj.numFluxes = 6;                                             % number of model fluxes
-            obj.numParams = 4; 
+            obj.numParams = 8; 
 
             obj.JacobPattern  = [1,0,1;
                                  1,1,0;
                                  1,1,1];                                   % Jacobian matrix of model store ODEs
                              
             obj.parRanges = [   0, 1;           % c, Recharge time coeffcient [d-1]
-                                %0.05, 0.95;     % ndc, Threshold fraction of Smax [-]
+                                0.05, 0.95;     % ndc, Threshold fraction of Smax [-]
                                 1, 2000;        % smax, Maximum soil moisture storage [mm]
-                                %0, 20;          % emax, Maximum evaporation flux [mm/d]
+                                0, 20;          % emax, Maximum evaporation flux [mm/d]
                                 0, 200;         % frate, Maximum infiltration rate [mm/d]
-                                0, 1];           % b, Fraction of subsurface flow that is baseflow [-]
-                                %0, 1;           % dpf, Baseflow time coefficient [d-1]
-                                %1, 300];        % sdrmax, Threshold before baseflow can occur [mm]
+                                0, 1;           % b, Fraction of subsurface flow that is baseflow [-]
+                                0, 1;           % dpf, Baseflow time coefficient [d-1]
+                                1, 300];        % sdrmax, Threshold before baseflow can occur [mm]
             
             obj.StoreNames = {"S1", "S2" "S3"};                            % Names for the stores
             obj.FluxNames  = {"ea", "qs", "f", "qb", "dp", "qdr"};         % Names for the fluxes
@@ -57,13 +57,13 @@ classdef m_202_mygsfb_4p_3s < MARRMoT_model
             % parameters
             theta = obj.theta;
             c       = theta(1);     % Recharge time coeffcient [d-1]
-            ndc     = 0.5;     % Threshold fraction of Smax [-]
-            smax    = theta(2);     % Maximum soil moisture storage [mm]
-            emax    = 8.9;     % Maximum evaporation flux [mm/d]
-            frate   = theta(3);     % Maximum infiltration rate [mm/d]
-            b       = theta(4);     % Fraction of subsurface flow that is baseflow [-]
-            dpf     = 0.005;     % Baseflow time coefficient [d-1]
-            sdrmax  = 25;     % Threshold before baseflow can occur [mm]
+            ndc     = theta(2);     % Threshold fraction of Smax [-]
+            smax    = theta(3);     % Maximum soil moisture storage [mm]
+            emax    = theta(4);     % Maximum evaporation flux [mm/d]
+            frate   = theta(5);     % Maximum infiltration rate [mm/d]
+            b       = theta(6);     % Fraction of subsurface flow that is baseflow [-]
+            dpf     = theta(7);     % Baseflow time coefficient [d-1]
+            sdrmax  = theta(8);     % Threshold before baseflow can occur [mm]
             
             % delta_t
             delta_t = obj.delta_t;
@@ -81,13 +81,41 @@ classdef m_202_mygsfb_4p_3s < MARRMoT_model
             T  = climate_in(3);
             
             % fluxes functions
+                % 1. surface runoff
+            S1 = S1 + P;
+            
+            ndcap = smax * ndc;      % Capacity of non-drainage component of S1
+            dcap  = smax - ndcap;    % Capacity of drainage component of S1
+            
+            dr  = max(S1 - ndcap, 0); % Storage in drainage component of S1
+            ndr = min(S1, ndcap);     % Storage in non-drainage component of S1
+            ex = max(dr - dcap,  0); % Excess in S1
+            flux_qs = ex - frate*tanh(ex/frate);    % surface runoff
+            dr = dr-flux_qs;
+                
+                % 2. baseflow
+            diff = max(S2 - sdrmax, 0); % Portion of S2 that constributes to baseflow
+            flux_qb = min(diff * b * dpf, diff);   % Baseflow
+
+                % 3. deep percolation
+            flux_dp = max((1-b) * dpf * S2, 0);
+
+                % 4. evapotranspiration
+            flux_ea = min(Ep,emax*ndr/ndcap);
+
+                % 5. throughflow
+            flux_f = min(frate, dr/delta_t);
+
+                % 6. recharge
+            flux_qdr = max(c * S3 * (1 - S1/ndcap), 0);
+
             %flux_ea  = evap_20(emax,ndc,S1,smax,Ep,delta_t);
-            flux_ea  = min(Ep, emax*S1/(smax*ndc) + Ep * (1- smoothThreshold_storage_logistic(S1,smax*ndc)));
-            flux_qs  = saturation_1(P,S1,smax);
-            flux_f   = min(frate,S1/delta_t).*smoothThreshold_storage_logistic(S1,smax*ndc);
-            flux_qb  = b*dpf*S2.* (1 - smoothThreshold_storage_logistic(S2, sdrmax));
-            flux_dp  = baseflow_1((1-b)*dpf,S2);
-            flux_qdr = recharge_5(c,ndc*smax,S3,S1);
+            %flux_ea  = min(Ep, emax*S1/(smax*ndc) + Ep * (1- smoothThreshold_storage_logistic(S1,smax*ndc)));
+            %flux_qs  = saturation_1(P,S1,smax);
+            %flux_f   = min(frate,S1/delta_t).*smoothThreshold_storage_logistic(S1,smax*ndc);
+            %flux_qb  = baseflow_9(b*dpf,sdrmax,S2);
+            %flux_dp  = baseflow_1((1-b)*dpf,S2);
+            %flux_qdr = recharge_5(c,ndc*smax,S3,S1);
 
             % stores ODEs
             dS1 = P + flux_qdr - flux_ea - flux_qs - flux_f;
