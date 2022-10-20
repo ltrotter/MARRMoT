@@ -522,10 +522,19 @@ classdef MARRMoT_model < handle
                  par_ini = mean(obj.parRanges,2);
              end
              
+             if size(par_ini,2)>1
+                 which_par = find(par_ini(:,2));
+                 par_ini = par_ini(:,1);
+             else
+                 which_par = (1:obj.numParams)';
+             end
+             
              % helper function to calculate fitness given a set of
              % parameters
              function fitness = fitness_fun(par)
-                 Q_sim = obj.get_streamflow([],[],par);
+                 this_par = par_ini;
+                 this_par(which_par) = par;
+                 Q_sim = obj.get_streamflow([],[],this_par);
                  fitness = (-1)^inverse_flag*feval(of_name, Q_obs, Q_sim, cal_idx, varargin{:});
              end
              
@@ -564,15 +573,18 @@ classdef MARRMoT_model < handle
                  disp('---')
              end
 
-             [par_opt,...                                                  % optimal parameter set at the end of the optimisation
+             [par_opt_raw,...                                              % optimal parameter set at the end of the optimisation
                  of_cal,...                                                % value of the objective function at par_opt
                  stopflag,...                                              % flag indicating reason the algorithm stopped
                  output] = ...                                             % output, see fminsearch for detail
                            feval(optim_fun,...                             % run the optimisation algorithm chosen
                                  @fitness_fun,...                          % function to optimise is the fitness function
-                                 par_ini,...                               % initial parameter set
+                                 par_ini(which_par),...                    % initial parameter set
                                  optim_opts);                              % optimiser options
              
+             par_opt = par_ini;
+             par_opt(which_par) = par_opt_raw;
+
              % if of_cal was inverted, invert it back before returning
              of_cal = (-1)^inverse_flag * of_cal;
              
